@@ -1,0 +1,113 @@
+version: 2.1
+
+orbs:
+    docker: circleci/docker@1.0.1
+
+jobs:
+    prepare-dependencies:
+        docker:
+            - image: node:current-alpine
+        steps:
+            - checkout
+            - run:
+                  name: Compute version number
+                  command: echo "0.0.${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}" | tee version.txt
+            - store_artifacts:
+                path: .
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - .
+
+    build-beta:
+        docker:
+            - image: node:current-alpine
+        steps:
+            - attach_workspace:
+                  at: .
+            - run:
+                  name: Production build
+                  command: |
+                      export __BUILD_VERSION="$(cat version.txt)"
+            - run:
+                  name: Version Number
+                  command: echo $(cat version.txt)
+            - run:
+                  name: Build Number
+                  command: echo $CIRCLE_BUILD_NUM
+            - store_artifacts:
+                path: .
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - .
+
+    build-prod:
+        machine:
+            image: ubuntu-1604:202004-01
+        steps:
+            - attach_workspace:
+                  at: .
+            - run:
+                  name: Version Number
+                  command: echo $(cat version.txt)
+            - store_artifacts:
+                path: .
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - .
+            - run:
+                  name: Setup __BUILD_VERSION envvar
+                  command: |
+                      echo "export __BUILD_VERSION=\"$(cat version.txt)\"" >> $BASH_ENV
+            - run:
+                  name: Print __BUILD_VERSION
+                  command: echo $__BUILD_VERSION
+
+
+    deploy-docker-image:
+        machine:
+            image: ubuntu-1604:202004-01
+        steps:
+            - attach_workspace:
+                  at: .
+            - run:
+                  name: Version Number
+                  command: echo $(cat version.txt)
+            - store_artifacts:
+                path: .
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - .
+            - run:
+                  name: Setup __BUILD_VERSION envvar
+                  command: |
+                      echo "export __BUILD_VERSION=\"$(cat version.txt)\"" >> $BASH_ENV
+            - run:
+                  name: Print __BUILD_VERSION
+                  command: echo $__BUILD_VERSION
+
+workflows:
+    version: 2.1
+    build-beta:
+        jobs:
+            - prepare-dependencies
+            - build-beta:
+                  requires:
+                      - prepare-dependencies
+    
+    build-deploy:
+        jobs:
+            - prepare-dependencies
+            - build-prod:
+                  requires:
+                      - prepare-dependencies
+            - hold:
+                  type: approval
+                  requires:
+                      - build-prod
+            - deploy-docker-image:
+                  requires:
+                      - hold
