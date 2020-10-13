@@ -90,7 +90,7 @@ jobs:
                   command: echo $__BUILD_VERSION
 
 workflows:
-    version: 2.1
+    version: 2
     build-beta:
         jobs:
             - prepare-dependencies
@@ -100,7 +100,11 @@ workflows:
     
     build-deploy:
         jobs:
-            - prepare-dependencies
+            - prepare-dependencies:
+                filters:
+                    branches:
+                        only:
+                            - circleci-project-setup
             - build-prod:
                   requires:
                       - prepare-dependencies
