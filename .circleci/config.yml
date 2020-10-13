@@ -104,6 +104,10 @@ workflows:
             - build-prod:
                   requires:
                       - prepare-dependencies
+                            filters:
+                               branches:
+                                    only:
+                                        - circleci-project-setup
             - hold:
                   type: approval
                   requires:
