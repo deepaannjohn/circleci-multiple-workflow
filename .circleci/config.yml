@@ -86,7 +86,7 @@ jobs:
                   command: |
                       echo "export __BUILD_VERSION=\"$(cat version.txt)\"" >> $BASH_ENV
             - run:
-                  name: Print __BUILD_VERSION
+                  name: Print __BUILD_VERSION_envvar
                   command: echo $__BUILD_VERSION
 
 workflows:
